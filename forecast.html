@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>MSN-Style Weather App</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #1e1e3f;
+      color: white;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: auto;
+    }
+
+    input, button {
+      padding: 10px;
+      font-size: 16px;
+      border: none;
+      border-radius: 5px;
+      margin: 5px;
+    }
+
+    input {
+      width: 60%;
+    }
+
+    button {
+      background-color: #ffc107;
+      color: black;
+      cursor: pointer;
+    }
+
+    .card {
+      background: #2e2e50;
+      border-radius: 10px;
+      padding: 20px;
+      margin-top: 20px;
+    }
+
+    .weather-grid {
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+    }
+
+    .weather-info, .forecast-card {
+      flex: 1 1 250px;
+      padding: 10px;
+    }
+
+    .forecast {
+      display: flex;
+      overflow-x: auto;
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    .forecast-card {
+      background: #3a3a60;
+      border-radius: 10px;
+      padding: 15px;
+      text-align: center;
+      min-width: 120px;
+    }
+
+    .icon {
+      width: 50px;
+    }
+
+    .label {
+      font-weight: bold;
+    }
+
+    .small {
+      font-size: 13px;
+      opacity: 0.8;
+    }
+
+    @media screen and (max-width: 600px) {
+      .weather-grid {
+        flex-direction: column;
+      }
+
+      input {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h2>📍 Weather Dashboard</h2>
+  <input id="cityInput" type="text" placeholder="Enter city name">
+  <button onclick="getWeather()">Get Weather</button>
+
+  <div id="weatherCard" class="card" style="display:none;">
+    <div class="weather-grid">
+      <div class="weather-info">
+        <h3 id="cityName"></h3>
+        <p><span id="condition"></span> | <strong><span id="temp"></span>°C</strong></p>
+        <p>Feels like: <span id="feels"></span>°C</p>
+        <p class="small">Updated: <span id="time"></span></p>
+      </div>
+      <div class="weather-info">
+        <p>💧 Humidity: <span id="humidity"></span>%</p>
+        <p>🌬️ Wind: <span id="wind"></span> km/h</p>
+        <p>🌫️ Visibility: <span id="visibility"></span> km</p>
+        <p>🔵 Pressure: <span id="pressure"></span> hPa</p>
+        <p>🟢 Dew Point: <span id="dew"></span>°C</p>
+      </div>
+    </div>
+
+    <h4 style="margin-top: 30px;">🔮 7-Day Forecast</h4>
+    <div id="forecast" class="forecast"></div>
+  </div>
+</div>
+
+<script>
+  const apiKey = "your API key";
+
+  function getWeather() {
+    const city = document.getElementById("cityInput").value;
+    if (!city) return alert("Enter a city name");
+
+    fetch(`https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${apiKey}&units=metric`)
+      .then(res => res.json())
+      .then(data => {
+        const lat = data.coord.lat;
+        const lon = data.coord.lon;
+
+        document.getElementById("weatherCard").style.display = "block";
+        document.getElementById("cityName").textContent = data.name;
+        document.getElementById("condition").textContent = data.weather[0].main;
+        document.getElementById("temp").textContent = Math.round(data.main.temp);
+        document.getElementById("feels").textContent = Math.round(data.main.feels_like);
+        document.getElementById("humidity").textContent = data.main.humidity;
+        document.getElementById("wind").textContent = data.wind.speed;
+        document.getElementById("pressure").textContent = data.main.pressure;
+        document.getElementById("visibility").textContent = (data.visibility / 1000).toFixed(1);
+        document.getElementById("dew").textContent = data.main.temp_min;
+
+        const now = new Date();
+        document.getElementById("time").textContent = now.toLocaleString();
+
+
+        fetch(`https://api.openweathermap.org/data/2.5/onecall?lat=${lat}&lon=${lon}&exclude=minutely,hourly,alerts&appid=${apiKey}&units=metric`)
+          .then(res => res.json())
+          .then(data => {
+            const daily = data.daily.slice(0, 7);
+            const forecastContainer = document.getElementById("forecast");
+            forecastContainer.innerHTML = "";
+
+            daily.forEach(day => {
+              const date = new Date(day.dt * 1000);
+              const dayName = date.toLocaleDateString(undefined, { weekday: 'short' });
+              const icon = day.weather[0].icon;
+              const html = `
+                <div class="forecast-card">
+                  <div class="label">${dayName}</div>
+                  <img class="icon" src="https://openweathermap.org/img/wn/${icon}.png" alt="icon">
+                  <div>${Math.round(day.temp.max)}° / ${Math.round(day.temp.min)}°</div>
+                  <small>${day.weather[0].main}</small>
+                </div>
+              `;
+              forecastContainer.innerHTML += html;
+            });
+          });
+      })
+      .catch(() => alert("Invalid city or API error"));
+  }
+</script>
+
+</body>
+</html>
